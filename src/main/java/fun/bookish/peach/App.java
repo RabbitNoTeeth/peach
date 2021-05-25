@@ -1,8 +1,6 @@
 package fun.bookish.peach;
 
-import fun.bookish.peach.detector.BrightnessDetector;
-import fun.bookish.peach.detector.SharpnessDetector;
-import fun.bookish.peach.detector.StripeDetector;
+import fun.bookish.peach.detector.*;
 import fun.bookish.peach.utils.ImageUtils;
 
 import java.net.URL;
@@ -17,8 +15,44 @@ public class App {
 
     public static void main(String[] args) {
 //        brightnessDetect();
-        sharpnessDetect();
+//        sharpnessDetect();
 //        stripeDetect();
+//        noiseDetect();
+        colorCastDetect();
+    }
+
+    /**
+     * 色偏检测
+     */
+    private static void colorCastDetect() {
+        List<String> imageList = ImageUtils.getImageList("E:\\projects\\peach\\images\\colorcast");
+        imageList.forEach(image -> {
+            ColorCastDetector detector = new ColorCastDetector();
+            ColorCastDetector.Result res = detector.detect(image);
+            String sb = "色偏检测(" + res.getThreshold() + ") - " +
+                    "文件: " + image + ", " +
+                    "是否正常: " + (res.isHasError() ? "[x]" : "[√]") +
+                    "(" + res.getResult() + ")";
+            System.out.println(sb);
+            ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
+        });
+    }
+
+    /**
+     * 噪声检测
+     */
+    private static void noiseDetect() {
+        List<String> imageList = ImageUtils.getImageList("E:\\projects\\peach\\images\\noise");
+        imageList.forEach(image -> {
+            NoiseDetector detector = new NoiseDetector();
+            NoiseDetector.Result res = detector.detect(image);
+            String sb = "噪声检测(" + res.getThreshold() + ") - " +
+                    "文件: " + image + ", " +
+                    "是否正常: " + (res.isHasError() ? "[x]" : "[√]") +
+                    "(" + res.getResult() + ")";
+            System.out.println(sb);
+            ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
+        });
     }
 
     /**
@@ -34,7 +68,7 @@ public class App {
                     "是否正常: " + (res.isHasError() ? "[x]" : "[√]") +
                     "(" + res.getResult() + ")";
             System.out.println(sb);
-            ImageUtils.show(image, "");
+            ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
         });
     }
 
@@ -51,7 +85,7 @@ public class App {
                     "是否正常: " + (res.isHasError() ? "[x]" : "[√]") +
                     "(" + res.getResult() + ")";
             System.out.println(sb);
-            ImageUtils.show(image, "");
+            ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
         });
     }
 
@@ -63,12 +97,12 @@ public class App {
         imageList.forEach(image -> {
             BrightnessDetector brightnessDetector = new BrightnessDetector();
             BrightnessDetector.Result res = brightnessDetector.detect(image);
-            String sb = "亮度检测(" + res.getThreshold1() + "," + res.getThreshold2() + ") - " +
+            String sb = "亮度检测(" + res.getThreshold() + ") - " +
                     "文件: " + image + ", " +
-                    "是否正常: " + (res.isHasError() ? (res.getErrorCode() == 1 ? "[x] 过亮" : "[x] 过暗") : "[√]") + " " +
-                    "(" + res.getResult1() + ", " + res.getResult2() + ")";
+                    "是否正常: " + (res.isHasError() ? (res.getError() == BrightnessDetector.ErrorType.OVER_BRIGHT ? "[x] 过亮" : "[x] 过暗") : "[√]") + " " +
+                    "(" + res.getResult() + ")";
             System.out.println(sb);
-            ImageUtils.show(image, "");
+            ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
         });
     }
 

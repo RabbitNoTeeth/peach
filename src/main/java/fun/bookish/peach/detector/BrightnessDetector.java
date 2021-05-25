@@ -9,20 +9,18 @@ import org.opencv.imgproc.Imgproc;
  */
 public class BrightnessDetector {
 
-    private float threshold1 = 1f;
-    private float threshold2 = 0f;
+    private float threshold = 0f;
     private int factor = 128;
 
     public BrightnessDetector() {
     }
 
-    public BrightnessDetector(float threshold1, float threshold2) {
-        this.threshold1 = threshold1;
-        this.threshold2 = threshold2;
+    public BrightnessDetector(float threshold) {
+        this.threshold = threshold;
     }
 
-    public BrightnessDetector(float threshold1, float threshold2, int factor) {
-        this(threshold1, threshold2);
+    public BrightnessDetector(float threshold, int factor) {
+        this(threshold);
         this.factor = factor;
     }
 
@@ -56,12 +54,12 @@ public class BrightnessDetector {
     private Result doDetect(Mat image) {
         float[] calculate = calculate(image);
         boolean hasError = false;
-        int errorCode = 0;
-        if (calculate[0] > threshold1) {
+        ErrorType errorType = ErrorType.NONE;
+        if (calculate[0] > 1f) {
             hasError = true;
-            errorCode = calculate[1] > threshold2 ? 1 : -1;
+            errorType = calculate[1] > threshold ? ErrorType.OVER_BRIGHT : ErrorType.OVER_DARK;
         }
-        return new Result(threshold1, threshold2, calculate[0], calculate[1], hasError, errorCode);
+        return new Result(threshold, calculate[1], hasError, errorType);
     }
 
     public Result detect(Mat image) {
@@ -74,45 +72,39 @@ public class BrightnessDetector {
     }
 
     public static class Result {
-        private final float threshold1;
-        private final float threshold2;
-        private final float result1;
-        private final float result2;
+        private final float threshold;
+        private final float result;
         private final boolean hasError;
-        private final int errorCode;
+        private final ErrorType errorType;
 
-        Result(float threshold1, float threshold2, float result1, float result2, boolean hasError, int errorCode) {
-            this.threshold1 = threshold1;
-            this.threshold2 = threshold2;
-            this.result1 = result1;
-            this.result2 = result2;
+        Result(float threshold, float result, boolean hasError, ErrorType errorType) {
+            this.threshold = threshold;
+            this.result = result;
             this.hasError = hasError;
-            this.errorCode = errorCode;
+            this.errorType = errorType;
         }
 
-        public float getResult1() {
-            return result1;
+        public float getThreshold() {
+            return threshold;
         }
 
-        public float getResult2() {
-            return result2;
-        }
-
-        public float getThreshold1() {
-            return threshold1;
-        }
-
-        public float getThreshold2() {
-            return threshold2;
+        public float getResult() {
+            return result;
         }
 
         public boolean isHasError() {
             return hasError;
         }
 
-        public int getErrorCode() {
-            return errorCode;
+        public ErrorType getError() {
+            return errorType;
         }
+    }
+
+    public enum ErrorType {
+        NONE,
+        OVER_BRIGHT,
+        OVER_DARK;
     }
 
 }
