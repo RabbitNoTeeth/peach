@@ -4,6 +4,9 @@ import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+/**
+ * 亮度检测器
+ */
 public class BrightnessDetector {
 
     private float threshold1 = 1f;
