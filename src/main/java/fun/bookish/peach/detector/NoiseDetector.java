@@ -1,16 +1,17 @@
 package fun.bookish.peach.detector;
 
 import jdk.nashorn.internal.ir.CallNode;
-import org.bytedeco.javacpp.indexer.DoubleRawIndexer;
-import org.bytedeco.javacpp.indexer.Indexer;
-import org.bytedeco.javacpp.indexer.IntRawIndexer;
-import org.bytedeco.javacpp.indexer.UByteRawIndexer;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.indexer.*;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
 import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Scalar;
 import org.bytedeco.opencv.opencv_core.Size;
+
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 
 /**
  * 噪声检测器
@@ -125,18 +126,10 @@ public class NoiseDetector {
     }
 
     private Mat matchange(Mat A, Mat B) {
-        Mat C = new Mat(B.rows(), B.cols(), opencv_core.CV_64F);
-        DoubleRawIndexer CIndexer = C.createIndexer();
-        DoubleRawIndexer AIndexer = A.createIndexer();
-        for (int i = 0; i < A.rows(); i++) {
-            for (int j = 0; j < A.cols(); j++) {
-                int a = A.cols() * i + j;
-                int b = a / C.cols();
-                int c = a % C.cols();
-                CIndexer.put(b, c, AIndexer.get(i, j));
-            }
-        }
-        return C;
+        ByteBuffer aBuffer = (ByteBuffer) A.asBuffer();
+        byte[] aBytes = new byte[aBuffer.capacity()];
+        aBuffer.get(aBytes);
+        return new Mat(B.rows(), B.cols(), opencv_core.CV_64F, new BytePointer(ByteBuffer.wrap(aBytes)));
     }
 
     private Result doDetect(Mat image) {
@@ -149,11 +142,19 @@ public class NoiseDetector {
         Mat imgv0 = new Mat();
         Mat imgh1 = new Mat();
         Mat imgv1 = new Mat();
-        Mat kh = new Mat(1, 3, opencv_core.CV_64F, new Scalar(-0.5, 0, 0.5, 0));
+        Mat kh = new Mat(1, 3, opencv_core.CV_64F);
+        DoubleRawIndexer khIndexer = kh.createIndexer();
+        khIndexer.put(0, 0, -0.5);
+        khIndexer.put(0, 1, 0);
+        khIndexer.put(0, 2, 0.5);
         opencv_imgproc.filter2D(image, imgh0, image.depth(), kh);
         imgh0.colRange(1, imgh0.cols() - 1).copyTo(imgh1);
         Mat imgh = imgh1.mul(imgh1).asMat();
-        Mat kv = new Mat(3, 1, opencv_core.CV_64F, new Scalar(-0.5, 0, 0.5, 0));
+        Mat kv = new Mat(3, 1, opencv_core.CV_64F);
+        DoubleRawIndexer kvIndexer = kv.createIndexer();
+        kvIndexer.put(0, 0, -0.5);
+        kvIndexer.put(1, 0, 0);
+        kvIndexer.put(2, 0, 0.5);
         opencv_imgproc.filter2D(image, imgv0, image.depth(), kv);
         imgv0.rowRange(1, imgv0.rows() - 1).copyTo(imgv1);
         Mat imgv = imgv1.mul(imgv1).asMat();
@@ -169,8 +170,17 @@ public class NoiseDetector {
         opencv_core.add(DHT, DVT, DD);
         double tau0 = 81.8208;
         Mat patchsize = new Mat(1, 2, opencv_core.CV_32S, new Scalar(7, 7));
+        IntRawIndexer patchsizeIndexer = patchsize.createIndexer();
+        patchsizeIndexer.put(0, 0, 7);
+        patchsizeIndexer.put(0, 1, 7);
         Mat patchsize_h = new Mat(1, 2, opencv_core.CV_32S, new Scalar(7, 5));
+        IntRawIndexer patchsize_hIndexer = patchsize_h.createIndexer();
+        patchsize_hIndexer.put(0, 0, 7);
+        patchsize_hIndexer.put(0, 1, 5);
         Mat patchsize_v = new Mat(1, 2, opencv_core.CV_32S, new Scalar(5, 7));
+        IntRawIndexer patchsize_vIndexer = patchsize_v.createIndexer();
+        patchsize_vIndexer.put(0, 0, 5);
+        patchsize_vIndexer.put(0, 1, 7);
         Mat X, Xh, Xv;
         X = im2col(image, patchsize);
         Xh = im2col(imgh, patchsize_h);

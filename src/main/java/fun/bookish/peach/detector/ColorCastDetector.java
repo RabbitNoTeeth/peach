@@ -1,13 +1,11 @@
 package fun.bookish.peach.detector;
 
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.opencv.core.Core.*;
+import org.bytedeco.javacpp.indexer.UByteRawIndexer;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.MatVector;
 
 /**
  * 色偏检测器
@@ -25,24 +23,26 @@ public class ColorCastDetector {
 
     private Result doDetect(Mat image) {
         Mat lab = new Mat();
-        Imgproc.cvtColor(image, lab, Imgproc.COLOR_BGR2Lab);
-        List<Mat> labChannels = new ArrayList<>();
-        Core.split(lab, labChannels);
+        opencv_imgproc.cvtColor(image, lab, opencv_imgproc.COLOR_BGR2Lab);
+        MatVector labChannels = new MatVector();
+        opencv_core.split(lab, labChannels);
         Mat channel_l = labChannels.get(0);
         Mat channel_a = labChannels.get(1);
         Mat channel_b = labChannels.get(2);
-        int h = lab.height();
-        int w = lab.width();
+        int h = lab.rows();
+        int w = lab.cols();
         // da > 0,偏红,否则偏绿
-        double da = sumElems(channel_a).val[0] / (h * w) - 128;
+        double da = opencv_core.sumElems(channel_a).get() / (h * w) - 128;
         // db > 0,偏黄,否则偏蓝
-        double db = sumElems(channel_b).val[0] / (h * w) - 128;
+        double db = opencv_core.sumElems(channel_b).get() / (h * w) - 128;
         int[] hist_a = new int[256];
         int[] hist_b = new int[256];
+        UByteRawIndexer aIndexer = channel_a.createIndexer();
+        UByteRawIndexer bIndexer = channel_b.createIndexer();
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
-                int ta = (int) channel_a.get(i, j)[0];
-                int tb = (int) channel_b.get(i, j)[0];
+                int ta = aIndexer.get(i, j);
+                int tb = bIndexer.get(i, j);
                 hist_a[ta] += 1;
                 hist_b[tb] += 1;
             }
@@ -81,7 +81,7 @@ public class ColorCastDetector {
     }
 
     public Result detect(String imagePath) {
-        Mat image = Imgcodecs.imread(imagePath);
+        Mat image = opencv_imgcodecs.imread(imagePath);
         return doDetect(image);
     }
 
