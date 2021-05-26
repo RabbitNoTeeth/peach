@@ -1,11 +1,10 @@
 package fun.bookish.peach.detector;
 
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfDouble;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
+import org.bytedeco.javacpp.indexer.DoubleRawIndexer;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_core.Mat;
 
 /**
  * 清晰度检测器
@@ -23,15 +22,17 @@ public class SharpnessDetector {
 
     private Result doDetect(Mat image) {
         Mat gray = new Mat();
-        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+        opencv_imgproc.cvtColor(image, gray, opencv_imgproc.COLOR_BGR2GRAY);
         Mat laplaci = new Mat();
-        Imgproc.Laplacian(gray, laplaci, CvType.CV_64F);
-        MatOfDouble mean = new MatOfDouble();
-        MatOfDouble dev = new MatOfDouble();
-        Core.meanStdDev(laplaci, mean, dev);
-        double[] array = dev.toArray();
-        double res = (array != null && array.length > 0) ? array[0] : -1;
-        return new Result(threshold, (float) res, res < threshold);
+        opencv_imgproc.Laplacian(gray, laplaci, opencv_core.CV_64F);
+        Mat means = new Mat();
+        Mat stddev = new Mat();
+        opencv_core.meanStdDev(laplaci, means, stddev);
+        DoubleRawIndexer meansIndexer = means.createIndexer();
+        DoubleRawIndexer stddevIndexer = stddev.createIndexer();
+        double men = meansIndexer.get(0);
+        double dev = stddevIndexer.get(0);
+        return new Result(threshold, (float) dev, dev < threshold);
     }
 
     public Result detect(Mat image) {
@@ -39,7 +40,7 @@ public class SharpnessDetector {
     }
 
     public Result detect(String imagePath) {
-        Mat image = Imgcodecs.imread(imagePath);
+        Mat image = opencv_imgcodecs.imread(imagePath);
         return doDetect(image);
     }
 

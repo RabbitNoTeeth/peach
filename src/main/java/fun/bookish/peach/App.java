@@ -3,22 +3,16 @@ package fun.bookish.peach;
 import fun.bookish.peach.detector.*;
 import fun.bookish.peach.utils.ImageUtils;
 
-import java.net.URL;
 import java.util.List;
 
 public class App {
-
-    static {
-        URL url = ClassLoader.getSystemResource("lib/opencv_java3414.dll");
-        System.load(url.getPath());
-    }
 
     public static void main(String[] args) {
 //        brightnessDetect();
 //        sharpnessDetect();
 //        stripeDetect();
-//        noiseDetect();
-        colorCastDetect();
+        noiseDetect();
+//        colorCastDetect();
     }
 
     /**

@@ -1,13 +1,14 @@
 package fun.bookish.peach.detector;
 
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.opencv.core.Core.*;
+import org.bytedeco.javacpp.indexer.DoubleRawIndexer;
+import org.bytedeco.javacpp.indexer.FloatRawIndexer;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.MatVector;
+import org.bytedeco.opencv.opencv_core.Scalar;
 
 /**
  * 条纹检测器
@@ -25,45 +26,50 @@ public class StripeDetector {
 
     private Result doDetect(Mat image) {
         Mat hsv = new Mat();
-        Imgproc.cvtColor(image, hsv, Imgproc.COLOR_BGR2HSV);
-        List<Mat> hsvChannels = new ArrayList<>();
-        Core.split(hsv, hsvChannels);
+        opencv_imgproc.cvtColor(image, hsv, opencv_imgproc.COLOR_BGR2HSV);
+        MatVector hsvChannels = new MatVector();
+        opencv_core.split(hsv, hsvChannels);
         Mat channelH = hsvChannels.get(0);
-        int m = Core.getOptimalDFTSize(channelH.rows());
-        int n = Core.getOptimalDFTSize(channelH.cols());
-        Core.copyMakeBorder(channelH, channelH, 0, m - channelH.rows(), 0, n - channelH.cols(), Core.BORDER_CONSTANT, new Scalar(0));
-        Mat mFourier = new Mat(channelH.rows() + m, channelH.cols() + n, CvType.CV_32FC2, new Scalar(0, 0));
-        List<Mat> mForFourier = new ArrayList<>();
+        int m = opencv_core.getOptimalDFTSize(channelH.rows());
+        int n = opencv_core.getOptimalDFTSize(channelH.cols());
+        opencv_core.copyMakeBorder(channelH, channelH, 0, m - channelH.rows(), 0, n - channelH.cols(), opencv_core.BORDER_CONSTANT, new Scalar(0));
+        Mat mFourier = new Mat(channelH.rows() + m, channelH.cols() + n, opencv_core.CV_32FC2, new Scalar(0, 0));
+        MatVector mForFourier = new MatVector();
         Mat m1 = new Mat();
-        channelH.convertTo(m1, CvType.CV_32F);
-        mForFourier.add(m1);
-        mForFourier.add(Mat.zeros(channelH.size(), CvType.CV_32F));
-        Mat mSrc = Mat.zeros(channelH.size(), CvType.CV_32F);
-        merge(mForFourier, mSrc);
-        Core.dft(mSrc, mFourier);
-        List<Mat> channels = new ArrayList<>();
-        Core.split(mFourier, channels);
+        channelH.convertTo(m1, opencv_core.CV_32F);
+        mForFourier.push_back(m1);
+        mForFourier.push_back(Mat.zeros(channelH.size(), opencv_core.CV_32F).asMat());
+        Mat mSrc = Mat.zeros(channelH.size(), opencv_core.CV_32F).asMat();
+        opencv_core.merge(mForFourier, mSrc);
+        opencv_core.dft(mSrc, mFourier);
+        MatVector channels = new MatVector();
+        opencv_core.split(mFourier, channels);
         Mat mRe = channels.get(0);
         Mat mIm = channels.get(1);
         Mat mAmplitude = new Mat();
-        Core.magnitude(mRe, mIm, mAmplitude);
-        add(mAmplitude, new Scalar(1), mAmplitude);
-        log(mAmplitude, mAmplitude);
-        MatOfDouble means = new MatOfDouble();
-        MatOfDouble stddev = new MatOfDouble();
-        Core.meanStdDev(mAmplitude, means, stddev);
-        double men = means.toArray()[0];
-        double std = stddev.toArray()[0];
-        Core.MinMaxLocResult minMaxLocResult = Core.minMaxLoc(mAmplitude);
-        double max_v = minMaxLocResult.maxVal;
-        double min_v = minMaxLocResult.minVal;
+        opencv_core.magnitude(mRe, mIm, mAmplitude);
+        opencv_core.add(mAmplitude, mAmplitude);
+        opencv_core.log(mAmplitude, mAmplitude);
+        Mat means = new Mat();
+        Mat stddev = new Mat();
+        opencv_core.meanStdDev(mAmplitude, means, stddev);
+        DoubleRawIndexer meansIndexer = means.createIndexer();
+        DoubleRawIndexer stddevIndexer = stddev.createIndexer();
+        double men = meansIndexer.get(0);
+        double std = stddevIndexer.get(0);
+        double[] min = new double[1];
+        double[] max = new double[1];
+        opencv_core.minMaxLoc(mAmplitude, min, max, null, null, null);
+        double max_v = max[0];
+        double min_v = min[0];
         double T = Math.max(men + 3 * std, max_v / 2);
         double count = 0;
         int height = mAmplitude.rows();
         int width = mAmplitude.cols();
+        FloatRawIndexer mAmplitudeIndexer = mAmplitude.createIndexer();
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
-                if (mAmplitude.get(i, j)[0] > T) {
+                if (mAmplitudeIndexer.get(i, j) > T) {
                     count++;
                 }
             }
@@ -77,7 +83,7 @@ public class StripeDetector {
     }
 
     public Result detect(String imagePath) {
-        Mat image = Imgcodecs.imread(imagePath);
+        Mat image = opencv_imgcodecs.imread(imagePath);
         return doDetect(image);
     }
 

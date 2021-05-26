@@ -1,8 +1,10 @@
 package fun.bookish.peach.detector;
 
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
+
+import org.bytedeco.javacpp.indexer.UByteRawIndexer;
+import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_core.Mat;
 
 /**
  * 亮度检测器
@@ -26,14 +28,16 @@ public class BrightnessDetector {
 
     private float[] calculate(Mat image) {
         Mat gray = new Mat();
-        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+        opencv_imgproc.cvtColor(image, gray, opencv_imgproc.COLOR_BGR2GRAY);
+        UByteRawIndexer indexer = gray.createIndexer();
         float a = 0f;
         int[] hist = new int[256];
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < 256; i++) {
             hist[i] = 0;
+        }
         for (int i = 0; i < gray.rows(); i++) {
             for (int j = 0; j < gray.cols(); j++) {
-                int x = (int) gray.get(i, j)[0];
+                int x = indexer.get(i, j);
                 a += (float) (x - factor);//在计算过程中，考虑128为亮度均值点，统计偏离的总数
                 hist[x]++; //统计每个亮度的次数
             }
@@ -67,7 +71,7 @@ public class BrightnessDetector {
     }
 
     public Result detect(String imagePath) {
-        Mat image = Imgcodecs.imread(imagePath);
+        Mat image = opencv_imgcodecs.imread(imagePath);
         return doDetect(image);
     }
 
