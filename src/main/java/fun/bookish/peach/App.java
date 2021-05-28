@@ -11,8 +11,8 @@ public class App {
 //        brightnessDetect();
 //        sharpnessDetect();
 //        stripeDetect();
-//        noiseDetect();
-        colorCastDetect();
+        noiseDetect();
+//        colorCastDetect();
     }
 
     /**
