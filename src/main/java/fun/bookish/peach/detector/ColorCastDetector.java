@@ -13,12 +13,24 @@ import org.bytedeco.opencv.opencv_core.MatVector;
 public class ColorCastDetector {
 
     private float threshold = 2f;
+    private final ColorCastDecision colorCastDecision;
 
     public ColorCastDetector() {
+        this.colorCastDecision = new ColorCastDecision();
+    }
+
+    public ColorCastDetector(ColorCastDecision colorCastDecision) {
+        this.colorCastDecision = colorCastDecision;
     }
 
     public ColorCastDetector(float threshold) {
         this.threshold = threshold;
+        this.colorCastDecision = new ColorCastDecision();
+    }
+
+    public ColorCastDetector(float threshold, ColorCastDecision colorCastDecision) {
+        this.threshold = threshold;
+        this.colorCastDecision = colorCastDecision;
     }
 
     private Result doDetect(Mat image) {
@@ -56,24 +68,34 @@ public class ColorCastDetector {
         double dividend = Math.sqrt(da * da + db * db);
         double divisor = Math.sqrt(msq_a * msq_a + msq_b * msq_b);
         double res = 0f;
-        boolean hasError = false;
         ErrorType errorType = ErrorType.NONE;
         if (dividend != 0d) {
             if (divisor != 0d) {
                 // 偏色因子越大，偏色越严重
                 res = dividend / divisor;
-                hasError = res > threshold;
                 errorType = decideColorType(da, db);
             }
         }
-        System.out.println("------------------------------------------------------------");
-        System.out.println("da=" + da + ", db=" + db + ", res=" + res);
-        return new ColorCastDetector.Result(threshold, res, hasError, errorType);
+        return new ColorCastDetector.Result(threshold, res, da, db, errorType != ErrorType.NONE, errorType);
     }
 
     private ErrorType decideColorType(double da, double db) {
-        // todo 根据da、db值判断具体偏色情况（红、黄、蓝、绿）
-        return null;
+        // 根据da、db值判断具体偏色情况（红、黄、蓝、绿）
+        // da > 0,偏红,否则偏绿
+        // db > 0,偏黄,否则偏蓝
+        if (colorCastDecision.blue(da, db)) {
+            return ErrorType.TOO_BLUE;
+        }
+        if (colorCastDecision.red(da, db)) {
+            return ErrorType.TOO_RED;
+        }
+        if (colorCastDecision.green(da, db)) {
+            return ErrorType.TOO_GREEN;
+        }
+        if (colorCastDecision.yellow(da, db)) {
+            return ErrorType.TOO_YELLOW;
+        }
+        return ErrorType.NONE;
     }
 
     public Result detect(Mat image) {
@@ -88,12 +110,16 @@ public class ColorCastDetector {
     public static class Result {
         private final double threshold;
         private final double result;
+        private final double da;
+        private final double db;
         private final boolean hasError;
         private final ErrorType errorType;
 
-        Result(double threshold, double result, boolean hasError, ErrorType errorType) {
+        Result(double threshold, double result, double da, double db, boolean hasError, ErrorType errorType) {
             this.threshold = threshold;
             this.result = result;
+            this.da = da;
+            this.db = db;
             this.hasError = hasError;
             this.errorType = errorType;
         }
@@ -109,6 +135,18 @@ public class ColorCastDetector {
         public double getResult() {
             return result;
         }
+
+        public double getDa() {
+            return da;
+        }
+
+        public double getDb() {
+            return db;
+        }
+
+        public ErrorType getErrorType() {
+            return errorType;
+        }
     }
 
     public enum ErrorType {
@@ -117,6 +155,26 @@ public class ColorCastDetector {
         TOO_GREEN,
         TOO_YELLOW,
         TOO_BLUE;
+    }
+
+    public static class ColorCastDecision {
+        // da > 0,偏红,否则偏绿
+        // db > 0,偏黄,否则偏蓝
+        public boolean blue(double da, double db) {
+            return db < -30 && -10 < da && da < 10;
+        }
+
+        public boolean red(double da, double db) {
+            return da > 30 && -10 < db && db < 10;
+        }
+
+        public boolean yellow(double da, double db) {
+            return db > 30 && -10 < da && da < 10;
+        }
+
+        public boolean green(double da, double db) {
+            return da < -30 && -10 < db && db < 10;
+        }
     }
 
 }

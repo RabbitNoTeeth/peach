@@ -11,8 +11,8 @@ public class App {
 //        brightnessDetect();
 //        sharpnessDetect();
 //        stripeDetect();
-        noiseDetect();
-//        colorCastDetect();
+//        noiseDetect();
+        colorCastDetect();
     }
 
     /**
@@ -26,7 +26,7 @@ public class App {
             String sb = "色偏检测(" + res.getThreshold() + ") - " +
                     "文件: " + image + ", " +
                     "是否正常: " + (res.isHasError() ? "[x]" : "[√]") +
-                    "(" + res.getResult() + ")";
+                    "(da=" + res.getDa() + ", db=" + res.getDb() + ", result=" + res.getResult() + ", errorType=" + res.getErrorType() + ")";
             System.out.println(sb);
             ImageUtils.show(image, res.isHasError() ? "[x]" : "[y]");
         });
