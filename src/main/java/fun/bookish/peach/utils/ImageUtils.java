@@ -31,7 +31,7 @@ public class ImageUtils {
             if (subFiles != null)
                 Arrays.stream(subFiles).forEach(subFile -> {
                     String name = subFile.getName();
-                    if (name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpg")) {
+                    if (name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".jpeg")) {
                         res.add(subFile.getAbsolutePath());
                     }
                 });
